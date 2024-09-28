@@ -92,15 +92,15 @@ const App = () => {
       // Fetch staking details
       const myStake = await tokenStaking.methods.stakingBalance(accounts[0]).call();
       const convertedStake = web3.utils.fromWei(myStake.toString(), 'Ether');
-      setMyStake([convertedStake, '0']); // Assuming only one stake type for simplicity
+      setMyStake([convertedStake, '0']); 
   
       const totalStaked = await tokenStaking.methods.totalStaked().call();
       const convertedTotalStaked = web3.utils.fromWei(totalStaked.toString(), 'Ether');
-      setTotalStaked([convertedTotalStaked, '0']); // Assuming one staking type
+      setTotalStaked([convertedTotalStaked, '0']); 
   
       // Fetch APY values
       const defaultAPY = (await tokenStaking.methods.defaultAPY().call()) / 1000 * 365;
-      setApy([defaultAPY, '0']); // Assuming only one APY type for simplicity
+      setApy([defaultAPY, '0']); 
   
       // Everything worked, remove loader
       setLoader(false);
