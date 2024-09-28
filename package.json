@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.1",
     "mongoose": "^8.3.4",
+    "nvm": "^0.0.4",
     "paytmchecksum": "^1.5.1",
     "react": "16.8.4",
     "react-bootstrap": "^1.5.2",

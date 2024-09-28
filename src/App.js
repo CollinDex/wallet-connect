@@ -32,127 +32,86 @@ const App = () => {
   }, []);
 
   const fetchDataFromBlockchain = async () => {
-    if (window.ethereum) {
-      // await window.ethereum.send('eth_requestAccounts');
+    try {
+      if (!window.ethereum) {
+        setAppStatus(false);
+        setAccount('Metamask is not detected');
+        setLoader(false);
+        return;
+      }
+  
+      // Request account access
       await window.ethereum.request({ method: 'eth_requestAccounts' });
-      window.web3 = new Web3(window.ethereum);
-
-      //connecting to metamask
-      let web3 = window.web3;
+      const web3 = new Web3(window.ethereum);
+      window.web3 = web3;
+  
+      // Fetch account
       const accounts = await web3.eth.getAccounts();
+      if (accounts.length === 0) {
+        setAccount('No account found');
+        setLoader(false);
+        return;
+      }
       setAccount(accounts[0]);
-
-      //loading users network ID and name
+  
+      // Fetch network ID and name
       const networkId = await web3.eth.net.getId();
       const networkType = await web3.eth.net.getNetworkType();
       setNetwork({ ...network, id: networkId, name: networkType });
-
-      //loading TestToken contract data
+  
+      // Load TestToken contract data
       const testTokenData = TestToken.networks[networkId];
-      if (testTokenData) {
-        let web3 = window.web3;
-        const testToken = new web3.eth.Contract(
-          TestToken.abi,
-          testTokenData.address
-        );
-        setTestTokenContract(testToken);
-        //  fetching balance of Testtoken and storing in state
-        let testTokenBalance = await testToken.methods
-          .balanceOf(accounts[0])
-          .call();
-        let convertedBalance = window.web3.utils.fromWei(
-          testTokenBalance.toString(),
-          'Ether'
-        );
-        setUserBalance(convertedBalance);
-
-        //fetching contract balance
-        //updating total staked balance
-        const tempBalance = TokenStaking.networks[networkId];
-        let totalStaked = await testToken.methods
-          .balanceOf(tempBalance.address)
-          .call();
-
-        convertedBalance = window.web3.utils.fromWei(
-          totalStaked.toString(),
-          'Ether'
-        );
-        //removing initial balance
-        setContractBalance(convertedBalance);
-      } else {
+      if (!testTokenData) {
         setAppStatus(false);
-        window.alert(
-          'TestToken contract is not deployed on this network, please change to testnet'
-        );
+        alert('TestToken contract is not deployed on this network. Please switch to the correct network.');
+        setLoader(false);
+        return;
       }
-
-      //loading TokenStaking contract data
+  
+      const testToken = new web3.eth.Contract(TestToken.abi, testTokenData.address);
+      setTestTokenContract(testToken);
+  
+      // Fetch user's TestToken balance
+      const testTokenBalance = await testToken.methods.balanceOf(accounts[0]).call();
+      const convertedBalance = web3.utils.fromWei(testTokenBalance.toString(), 'Ether');
+      setUserBalance(convertedBalance);
+      setContractBalance(contractBalance);
+  
+      // Fetch contract balance and total staked amount
       const tokenStakingData = TokenStaking.networks[networkId];
-
-      if (tokenStakingData) {
-        let web3 = window.web3;
-        const tokenStaking = new web3.eth.Contract(
-          TokenStaking.abi,
-          tokenStakingData.address
-        );
-        setTokenStakingContract(tokenStaking);
-        //  fetching total staked TokenStaking  and storing in state
-        let myStake = await tokenStaking.methods
-          .stakingBalance(accounts[0])
-          .call();
-
-        let convertedBalance = window.web3.utils.fromWei(
-          myStake.toString(),
-          'Ether'
-        );
-
-        let myCustomStake = await tokenStaking.methods
-          .customStakingBalance(accounts[0])
-          .call();
-
-        let tempCustomdBalance = window.web3.utils.fromWei(
-          myCustomStake.toString(),
-          'Ether'
-        );
-
-        setMyStake([convertedBalance, tempCustomdBalance]);
-
-        //checking totalStaked
-        let tempTotalStaked = await tokenStaking.methods.totalStaked().call();
-        convertedBalance = window.web3.utils.fromWei(
-          tempTotalStaked.toString(),
-          'Ether'
-        );
-        let tempcustomTotalStaked = await tokenStaking.methods
-          .customTotalStaked()
-          .call();
-        let tempconvertedBalance = window.web3.utils.fromWei(
-          tempcustomTotalStaked.toString(),
-          'Ether'
-        );
-        setTotalStaked([convertedBalance, tempconvertedBalance]);
-
-        //fetching APY values from contract
-        let tempApy =
-          ((await tokenStaking.methods.defaultAPY().call()) / 1000) * 365;
-        let tempcustomApy =
-          ((await tokenStaking.methods.customAPY().call()) / 1000) * 365;
-        setApy([tempApy, tempcustomApy]);
-      } else {
+      if (!tokenStakingData) {
         setAppStatus(false);
-        window.alert(
-          'TokenStaking contract is not deployed on this network, please change to testnet'
-        );
+        alert('TokenStaking contract is not deployed on this network. Please switch to the correct network.');
+        setLoader(false);
+        return;
       }
-
-      //removing loader
+  
+      const tokenStaking = new web3.eth.Contract(TokenStaking.abi, tokenStakingData.address);
+      setTokenStakingContract(tokenStaking);
+  
+      // Fetch staking details
+      const myStake = await tokenStaking.methods.stakingBalance(accounts[0]).call();
+      const convertedStake = web3.utils.fromWei(myStake.toString(), 'Ether');
+      setMyStake([convertedStake, '0']); // Assuming only one stake type for simplicity
+  
+      const totalStaked = await tokenStaking.methods.totalStaked().call();
+      const convertedTotalStaked = web3.utils.fromWei(totalStaked.toString(), 'Ether');
+      setTotalStaked([convertedTotalStaked, '0']); // Assuming one staking type
+  
+      // Fetch APY values
+      const defaultAPY = (await tokenStaking.methods.defaultAPY().call()) / 1000 * 365;
+      setApy([defaultAPY, '0']); // Assuming only one APY type for simplicity
+  
+      // Everything worked, remove loader
       setLoader(false);
-    } else if (!window.web3) {
+    } catch (error) {
+      console.error('Error in fetching data from blockchain:', error.message);
       setAppStatus(false);
-      setAccount('Metamask is not detected');
+      setAccount('Error fetching data. Check console for details.');
       setLoader(false);
     }
   };
+  
 
   const inputHandler = (received) => {
     setInputValue(received);
